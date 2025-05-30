@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nginx Configuration with Reverse Proxy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            padding: 2rem 0;
+        }
+
+        .config-card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .card-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+        }
+
+        .card-title {
+            position: relative;
+            z-index: 1;
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.8rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-subtitle {
+            position: relative;
+            z-index: 1;
+            margin-top: 0.5rem;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .card-body {
+            padding: 2.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        .form-text {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .form-check {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .form-check:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e0;
+        }
+
+        .form-check-input:checked + .form-check-label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .form-check-input {
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-top: 0.125rem;
+        }
+
+        .form-check-label {
+            font-size: 1rem;
+            margin-left: 0.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .success-alert {
+            border: none;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .config-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #48bb78;
+        }
+
+        .config-label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .config-value {
+            font-family: 'Courier New', monospace;
+            background: #f7fafc;
+            padding: 0.5rem;
+            border-radius: 6px;
+            color: #2d3748;
+            word-break: break-all;
+        }
+
+        .header-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+        }
+
+        .ssl-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .ssl-enabled {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .ssl-disabled {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+<div id="app" class="main-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="config-card card shadow-lg">
+                    <div class="card-header text-white text-center">
+                        <div class="header-icon">
+                            <svg width="30" height="30" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                            </svg>
+                        </div>
+                        <h4 class="card-title" v-text="'Nginx Configuration'"></h4>
+                        <p class="card-subtitle" v-text="'with Reverse Proxy'"></p>
+                    </div>
+                    <div class="card-body">
+                        <form v-on:submit.prevent="submitForm">
+                            <!-- App URL Field -->
+                            <div class="mb-4">
+                                <label for="appUrl" class="form-label" v-text="'🌐 App URL'"></label>
+                                <input
+                                        type="url"
+                                        class="form-control"
+                                        id="appUrl"
+                                        v-model="formData.app_url"
+                                        placeholder="http://127.0.0.1:3000"
+                                        required
+                                >
+                                <div class="form-text" v-text="'Enter the full URL of your application on server or remote server'"></div>
+                            </div>
+
+                            <!-- Domain Field -->
+                            <div class="mb-4">
+                                <label for="domain" class="form-label" v-text="'🏷️ Domain'"></label>
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        id="domain"
+                                        v-model="formData.domain"
+                                        placeholder="example.com"
+                                        required
+                                >
+                                <div class="form-text" v-text="'Enter your domain name'"></div>
+                            </div>
+
+                            <!-- SSL Field -->
+                            <div class="mb-4">
+                                <label class="form-label" v-text="'🔒 SSL Configuration'"></label>
+                                <div class="form-check">
+                                    <input
+                                            class="form-check-input"
+                                            type="radio"
+                                            name="ssl"
+                                            id="sslYes"
+                                            value="yes"
+                                            v-model="formData.ssl"
+                                    >
+                                    <label class="form-check-label" for="sslYes">
+                                        <strong>✅ Enable SSL</strong> - Recommended for production
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input
+                                            class="form-check-input"
+                                            type="radio"
+                                            name="ssl"
+                                            id="sslNo"
+                                            value="no"
+                                            v-model="formData.ssl"
+                                    >
+                                    <label class="form-check-label" for="sslNo">
+                                        <strong>❌ Disable SSL</strong> - For development only
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-submit">
+                                    🚀 Deploy Configuration
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Display Form Data -->
+                        <div v-if="submitted" class="success-alert alert fade-in">
+                            <div class="text-center mb-3">
+                                <h5>🎉 Configuration Deployed Successfully!</h5>
+                            </div>
+                            <div class="config-item">
+                                <div class="config-label">App URL:</div>
+                                <div class="config-value" v-text="formData.app_url"></div>
+                            </div>
+                            <div class="config-item">
+                                <div class="config-label">Domain:</div>
+                                <div class="config-value" v-text="formData.domain"></div>
+                            </div>
+                            <div class="config-item">
+                                <div class="config-label">SSL Status:</div>
+                                <span
+                                        class="ssl-status"
+                                        v-bind:class="formData.ssl === 'yes' ? 'ssl-enabled' : 'ssl-disabled'"
+                                        v-text="formData.ssl === 'yes' ? '🔒 SSL Enabled' : '⚠️ SSL Disabled'"
+                                ></span>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    new Vue({
+        el: '#app',
+        data: {
+            formData: {
+                app_url: '',
+                domain: '',
+                ssl: 'yes'
+            },
+            submitted: false
+        },
+        methods: {
+            submitForm: function () {
+                if (this.formData.app_url && this.formData.domain && this.formData.ssl) {
+                    fetch('/deploy/nginx', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(this.formData)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                alert(data.error);
+                            } else {
+                                this.submitted = true;
+                                console.log('Đã gửi thành công:', data);
+                            }
+                        })
+                        .catch(err => {
+                            alert('Lỗi khi gửi cấu hình');
+                            console.error(err);
+                        });
+                } else {
+                    alert('Please fill in all required fields');
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>
