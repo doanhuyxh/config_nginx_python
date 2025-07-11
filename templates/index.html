@@ -253,7 +253,8 @@
                                         placeholder="http://127.0.0.1:3000"
                                         required
                                 >
-                                <div class="form-text" v-text="'Enter the full URL of your application on server or remote server'"></div>
+                                <div class="form-text"
+                                     v-text="'Enter the full URL of your application on server or remote server'"></div>
                             </div>
 
                             <!-- Domain Field -->
@@ -304,7 +305,12 @@
                             <!-- Submit Button -->
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary btn-submit">
-                                    🚀 Deploy Configuration
+                                    <span v-if="!loading">🚀 Deploy Configuration</span>
+                                    <div v-if="loading">
+                                        <div class="spinner-border" role="status">
+                                            <span class="sr-only"></span>
+                                        </div>
+                                    </div>
                                 </button>
                             </div>
                         </form>
@@ -350,11 +356,13 @@
                 domain: '',
                 ssl: 'yes'
             },
-            submitted: false
+            submitted: false,
+            loading: false
         },
         methods: {
             submitForm: function () {
                 if (this.formData.app_url && this.formData.domain && this.formData.ssl) {
+                    this.loading = true
                     fetch('/deploy/nginx', {
                         method: 'POST',
                         headers: {
@@ -368,6 +376,7 @@
                                 alert(data.error);
                             } else {
                                 this.submitted = true;
+                                this.loading = false
                                 console.log('Đã gửi thành công:', data);
                             }
                         })
