@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import os
-from tools.config_generator_nginx import create_config_file, create_symlink, reload_nginx, certbot_ssl, clear_all_pycache
+from tools.config_generator_nginx import create_config_file, create_symlink, reload_nginx, certbot_ssl, clear_all_pycache, deploy_multiple_domains
 app = Flask(__name__)
 
 def generate_nginx_config(domain, app_url):
@@ -46,6 +46,24 @@ def deploy_nginx():
         "message": f"Đã triển khai Nginx cho {domain} thành công",
         "ssl_enabled": ssl_enabled
     }), 200
+
+@app.route('/deploy/nginx/batch', methods=['POST'])
+def deploy_nginx_batch():
+    """Deploy multiple domains at once"""
+    if os.geteuid() != 0:
+        return jsonify({"error": "API này cần chạy với quyền root (sudo)"}), 403
+    
+    data = request.get_json()
+    domains = data.get('domains', [])
+    
+    if not domains or not isinstance(domains, list):
+        return jsonify({"error": "Vui lòng cung cấp danh sách domains (mảng)"}), 400
+    
+    if len(domains) == 0:
+        return jsonify({"error": "Danh sách domains trống"}), 400
+    
+    results, status = deploy_multiple_domains(domains)
+    return jsonify(results), status
 
 if __name__ == '__main__':
     clear_all_pycache()
