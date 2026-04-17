@@ -1,7 +1,20 @@
 from flask import Flask, request, jsonify, render_template
 import os
+from flasgger import Flasgger
 from tools.config_generator_nginx import create_config_file, create_symlink, reload_nginx, certbot_ssl, clear_all_pycache, deploy_multiple_domains
+
 app = Flask(__name__)
+swagger = Flasgger(app, template={
+    "swagger": "2.0",
+    "info": {
+        "title": "Nginx Config Manager API",
+        "description": "API để quản lý cấu hình Nginx cho nhiều domain trên Linux",
+        "version": "1.0.0"
+    },
+    "host": "localhost:3000",
+    "basePath": "/",
+    "schemes": ["http", "https"]
+})
 
 def generate_nginx_config(domain, app_url):
     with open('templates/nginx.conf', 'r') as f:
@@ -10,10 +23,80 @@ def generate_nginx_config(domain, app_url):
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html')
+    """Display Swagger UI Documentation"""
+    return render_template('swagger.html')
 
 @app.route('/deploy/nginx', methods=['POST'])
 def deploy_nginx():
+    """
+    Deploy Nginx configuration for a single domain
+    ---
+    tags:
+      - Nginx Management
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - domain
+          properties:
+            domain:
+              type: string
+              description: Domain name (e.g., example.com)
+              example: example.com
+            app_url:
+              type: string
+              description: Backend application URL
+              default: http://localhost:3000
+              example: http://localhost:3000
+            ssl:
+              type: string
+              enum: ['yes', 'no']
+              default: 'no'
+              description: Enable SSL certificate with Certbot
+              example: 'yes'
+          example:
+            domain: example.com
+            app_url: http://localhost:3000
+            ssl: 'yes'
+    responses:
+      200:
+        description: Nginx configuration deployed successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Đã triển khai Nginx cho example.com thành công
+            ssl_enabled:
+              type: boolean
+              example: true
+      400:
+        description: Missing required domain parameter
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: Vui lòng cung cấp domain
+      403:
+        description: Root privileges required
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: API này cần chạy với quyền root (sudo)
+      500:
+        description: Server error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     if os.geteuid() != 0:
         return jsonify({"error": "API này cần chạy với quyền root (sudo)"}), 403
     
@@ -49,7 +132,119 @@ def deploy_nginx():
 
 @app.route('/deploy/nginx/batch', methods=['POST'])
 def deploy_nginx_batch():
-    """Deploy multiple domains at once"""
+    """
+    Deploy Nginx configuration for multiple domains at once
+    ---
+    tags:
+      - Nginx Management
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - domains
+          properties:
+            domains:
+              type: array
+              items:
+                type: object
+                required:
+                  - domain
+                properties:
+                  domain:
+                    type: string
+                    description: Domain name
+                    example: example.com
+                  app_url:
+                    type: string
+                    description: Backend application URL
+                    default: http://localhost:3000
+                    example: http://localhost:3000
+                  ssl:
+                    type: string
+                    enum: ['yes', 'no']
+                    default: 'no'
+                    description: Enable SSL certificate
+                    example: 'yes'
+              example:
+                - domain: example1.com
+                  app_url: http://localhost:3000
+                  ssl: 'yes'
+                - domain: example2.com
+                  app_url: http://localhost:3001
+                  ssl: 'no'
+                - domain: example3.com
+                  app_url: http://localhost:3002
+                  ssl: 'yes'
+          example:
+            domains:
+              - domain: example1.com
+                app_url: http://localhost:3000
+                ssl: 'yes'
+              - domain: example2.com
+                app_url: http://localhost:3001
+                ssl: 'no'
+              - domain: example3.com
+                app_url: http://localhost:3002
+                ssl: 'yes'
+    responses:
+      200:
+        description: Batch deployment completed with results
+        schema:
+          type: object
+          properties:
+            successful:
+              type: array
+              items:
+                type: object
+                properties:
+                  domain:
+                    type: string
+                    example: example1.com
+                  ssl_enabled:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Đã tạo file cấu hình tại /etc/nginx/sites-available/example1.com
+            failed:
+              type: array
+              items:
+                type: object
+                properties:
+                  domain:
+                    type: string
+                    example: invalid.domain
+                  error:
+                    type: string
+                    example: Lỗi khi tạo symlink
+            summary:
+              type: string
+              example: Đã setup 2 domain(s) thành công
+      400:
+        description: Invalid input
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      403:
+        description: Root privileges required
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+      500:
+        description: Server error
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+    """
     if os.geteuid() != 0:
         return jsonify({"error": "API này cần chạy với quyền root (sudo)"}), 403
     

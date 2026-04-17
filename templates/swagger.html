@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nginx Configuration Manager API</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@3.52.5/swagger-ui.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #fafafa;
+        }
+        .topbar {
+            background-color: #1e1e1e;
+            padding: 10px 0;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15);
+        }
+        .topbar-wrapper {
+            max-width: 1460px;
+            margin: 0 auto;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .topbar h1 {
+            color: white;
+            font-size: 24px;
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .topbar-info {
+            color: #c0c0c0;
+            font-size: 12px;
+        }
+        .swagger-ui {
+            max-width: 1460px;
+        }
+        .information-container {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .05);
+        }
+        .info-title {
+            color: #1e1e1e;
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+        .info-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .quick-start {
+            background: #f0f7ff;
+            border-left: 4px solid #0066cc;
+            padding: 1.5rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .quick-start h3 {
+            color: #0066cc;
+            margin-top: 0;
+        }
+        .quick-start pre {
+            background: white;
+            border: 1px solid #e0e0e0;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .quick-start code {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-wrapper">
+            <div>
+                <h1>🚀 Nginx Configuration Manager API</h1>
+                <div class="topbar-info">v1.0.0 - Linux Nginx Config Management System</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="max-width: 1460px; margin: 0 auto; padding: 20px;">
+        <div class="information-container">
+            <h2 class="info-title">📋 Nginx Config Manager</h2>
+            <p class="info-description">
+                API để quản lý cấu hình Nginx cho nhiều domain trên các hệ điều hành Linux khác nhau (Ubuntu, Debian, CentOS, RHEL, Fedora).
+                Hỗ trợ deploy một domain hoặc nhiều domains cùng lúc, tự động cấu hình reverse proxy và SSL.
+            </p>
+
+            <div class="quick-start">
+                <h3>🚀 Hướng dẫn nhanh</h3>
+                <p><strong>1. Deploy một domain:</strong></p>
+                <pre><code>curl -X POST http://localhost:3000/deploy/nginx \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "example.com",
+    "app_url": "http://localhost:3000",
+    "ssl": "yes"
+  }'</code></pre>
+
+                <p><strong>2. Deploy nhiều domains cùng lúc:</strong></p>
+                <pre><code>curl -X POST http://localhost:3000/deploy/nginx/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domains": [
+      {
+        "domain": "example1.com",
+        "app_url": "http://localhost:3000",
+        "ssl": "yes"
+      },
+      {
+        "domain": "example2.com",
+        "app_url": "http://localhost:3001",
+        "ssl": "no"
+      }
+    ]
+  }'</code></pre>
+
+                <p><strong>⚠️ Lưu ý:</strong> Cần chạy với quyền root (sudo)</p>
+            </div>
+
+            <div class="quick-start" style="background: #fffbe6; border-left-color: #faad14; margin-top: 1rem;">
+                <h3 style="color: #faad14; margin-top: 0;">ℹ️ Thông tin hệ thống</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>Ubuntu/Debian:</strong> Config files stored in <code>/etc/nginx/sites-available/</code></li>
+                    <li><strong>CentOS/RHEL/Fedora:</strong> Config files stored in <code>/etc/nginx/conf.d/</code></li>
+                    <li><strong>SSL:</strong> Tự động cấu hình SSL với Certbot (LetsEncrypt)</li>
+                    <li><strong>Reverse Proxy:</strong> Tự động cấu hình proxy đến backend app</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="swagger-ui"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@3.52.5/swagger-ui-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@3.52.5/swagger-ui-standalone-preset.min.js"></script>
+    <script>
+        window.onload = function() {
+            SwaggerUIBundle({
+                url: "/apispec_1.json",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                docExpansion: "list",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                tryItOutEnabled: true
+            })
+        }
+    </script>
+</body>
+</html>
