@@ -4,17 +4,25 @@ from flasgger import Flasgger
 from tools.config_generator_nginx import create_config_file, create_symlink, reload_nginx, certbot_ssl, clear_all_pycache, deploy_multiple_domains
 
 app = Flask(__name__)
-swagger = Flasgger(app, template={
+APP_PORT = os.getenv("PORT", "3000")
+SWAGGER_HOST = os.getenv("SWAGGER_HOST")
+
+swagger_template = {
     "swagger": "2.0",
     "info": {
         "title": "Nginx Config Manager API",
         "description": "API để quản lý cấu hình Nginx cho nhiều domain trên Linux",
         "version": "1.0.0"
     },
-    "host": "localhost:3000",
     "basePath": "/",
     "schemes": ["http", "https"]
-})
+}
+
+# Set public host/IP for Swagger when deploying to internet.
+if SWAGGER_HOST:
+    swagger_template["host"] = SWAGGER_HOST if ":" in SWAGGER_HOST else f"{SWAGGER_HOST}:{APP_PORT}"
+
+swagger = Flasgger(app, template=swagger_template)
 
 def generate_nginx_config(domain, app_url):
     with open('templates/nginx.conf', 'r') as f:
@@ -262,4 +270,4 @@ def deploy_nginx_batch():
 
 if __name__ == '__main__':
     clear_all_pycache()
-    app.run(host='0.0.0.0', port=3000)
+    app.run(host='0.0.0.0', port=int(APP_PORT))
