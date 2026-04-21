@@ -1,0 +1,112 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Nginx Config Manager API",
+    "description": "API de quan ly cau hinh Nginx cho domain tren Linux",
+    "version": "1.0.0"
+  },
+  "basePath": "/",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/deploy/nginx": {
+      "post": {
+        "summary": "Deploy Nginx configuration for a single domain",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DeployRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deploy thanh cong",
+            "schema": {
+              "$ref": "#/definitions/DeploySuccessResponse"
+            }
+          },
+          "400": {
+            "description": "Thieu tham so bat buoc",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "403": {
+            "description": "Can quyen root",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Loi server",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "DeployRequest": {
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "type": "string",
+          "example": "example.com"
+        },
+        "app_url": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "example": "http://localhost:3000"
+        },
+        "ssl": {
+          "type": "string",
+          "enum": [
+            "yes",
+            "no"
+          ],
+          "default": "no",
+          "example": "yes"
+        }
+      }
+    },
+    "DeploySuccessResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "Da trien khai Nginx cho example.com thanh cong"
+        },
+        "ssl_enabled": {
+          "type": "boolean",
+          "example": true
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "example": "Vui long cung cap domain"
+        }
+      }
+    }
+  }
+}

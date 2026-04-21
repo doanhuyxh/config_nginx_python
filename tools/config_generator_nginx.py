@@ -140,91 +140,57 @@ def certbot_ssl(domain):
         return {"error": f"Lỗi khi chạy certbot: {e}"}, 500
 
 
-def deploy_multiple_domains(domains_config):
+def deploy_single_domain(domain, app_url='http://localhost:3000', ssl_option='no', reload_after_setup=True):
     """
-    Deploy multiple domains at once.
-    
+    Deploy Nginx configuration for a single domain.
+
     Args:
-        domains_config: List of dict with keys:
-            - domain: domain name
-            - app_url: application URL (default: http://localhost:3000)
-            - ssl: enable SSL (default: 'no')
-    
+        domain: domain name
+        app_url: backend application URL
+        ssl_option: 'yes' or 'no'
+        reload_after_setup: reload Nginx immediately after config/symlink
+
     Returns:
-        dict with results for each domain
+        tuple: (result_dict, status_code)
     """
     if os.geteuid() != 0:
         return {"error": "Cần chạy script với quyền root (sudo)"}, 403
-    
-    results = {
-        "successful": [],
-        "failed": [],
-        "summary": ""
-    }
-    
-    for idx, domain_config in enumerate(domains_config, 1):
-        domain = domain_config.get('domain')
-        app_url = domain_config.get('app_url', 'http://localhost:3000')
-        ssl_option = domain_config.get('ssl', 'no')
-        
-        try:
-            # Import here to avoid circular imports
-            from app import generate_nginx_config
-            
-            # Create config file
-            config_content = generate_nginx_config(domain, app_url)
-            config_result, config_status = create_config_file(domain, config_content)
-            
-            if config_status != 200:
-                results["failed"].append({
-                    "domain": domain,
-                    "error": config_result.get("error")
-                })
-                continue
-            
-            # Create symlink
-            symlink_result, symlink_status = create_symlink(domain)
-            if symlink_status != 200:
-                results["failed"].append({
-                    "domain": domain,
-                    "error": symlink_result.get("error")
-                })
-                continue
-            
-            # Handle SSL
-            ssl_enabled = ssl_option.lower() == 'yes'
-            if ssl_enabled:
-                ssl_result, ssl_status = certbot_ssl(domain)
-                if ssl_status != 200:
-                    results["failed"].append({
-                        "domain": domain,
-                        "error": f"SSL error: {ssl_result.get('error')}"
-                    })
-                    continue
-            
-            results["successful"].append({
-                "domain": domain,
-                "ssl_enabled": ssl_enabled,
-                "message": config_result.get("message")
-            })
-        
-        except Exception as e:
-            results["failed"].append({
-                "domain": domain,
-                "error": str(e)
-            })
-    
-    # Reload Nginx once after all configs are created
-    if results["successful"]:
-        reload_result, reload_status = reload_nginx()
-        if reload_status == 200:
-            results["summary"] = f"Đã setup {len(results['successful'])} domain(s) thành công"
-        else:
-            results["summary"] = f"Setup thành công nhưng reload Nginx lỗi: {reload_result.get('error')}"
-    else:
-        results["summary"] = f"Setup thất bại, không có domain nào được tạo"
-    
-    return results, 200 if results["successful"] else 500
+
+    if not domain:
+        return {"error": "Vui lòng cung cấp domain"}, 400
+
+    try:
+        # Import here to avoid circular imports
+        from app import generate_nginx_config
+
+        config_result, config_status = create_config_file(
+            domain, generate_nginx_config(domain, app_url)
+        )
+        if config_status != 200:
+            return config_result, config_status
+
+        symlink_result, symlink_status = create_symlink(domain)
+        if symlink_status != 200:
+            return symlink_result, symlink_status
+
+        if reload_after_setup:
+            reload_result, reload_status = reload_nginx()
+            if reload_status != 200:
+                return reload_result, reload_status
+
+        ssl_enabled = str(ssl_option).lower() == 'yes'
+        if ssl_enabled:
+            ssl_result, ssl_status = certbot_ssl(domain)
+            if ssl_status != 200:
+                return ssl_result, ssl_status
+
+        return {
+            "domain": domain,
+            "ssl_enabled": ssl_enabled,
+            "message": config_result.get("message")
+        }, 200
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 
 def clear_all_pycache():
