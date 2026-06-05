@@ -94,7 +94,8 @@ def create_symlink(domain, sites_available=None, sites_enabled=None):
     source_path = os.path.join(sites_available, domain)
     target_path = os.path.join(sites_enabled, domain)
     try:
-        if os.path.exists(target_path):
+        os.makedirs(sites_enabled, exist_ok=True)
+        if os.path.lexists(target_path):
             os.remove(target_path)
         os.symlink(source_path, target_path)
         return {"message": f"Đã tạo symlink: {target_path} -> {source_path}"}, 200
@@ -140,13 +141,14 @@ def certbot_ssl(domain):
         return {"error": f"Lỗi khi chạy certbot: {e}"}, 500
 
 
-def deploy_single_domain(domain, app_url='http://localhost:3000', ssl_option='no', reload_after_setup=True):
+def deploy_single_domain(domain, app_urls=None, app_url='http://localhost:3000', ssl_option='no', reload_after_setup=True):
     """
     Deploy Nginx configuration for a single domain.
 
     Args:
         domain: domain name
-        app_url: backend application URL
+        app_urls: backend application URLs for Nginx upstream (round-robin)
+        app_url: deprecated single backend URL (kept for compatibility)
         ssl_option: 'yes' or 'no'
         reload_after_setup: reload Nginx immediately after config/symlink
 
@@ -159,12 +161,15 @@ def deploy_single_domain(domain, app_url='http://localhost:3000', ssl_option='no
     if not domain:
         return {"error": "Vui lòng cung cấp domain"}, 400
 
+    if not app_urls:
+        app_urls = [app_url]
+
     try:
         # Import here to avoid circular imports
         from app import generate_nginx_config
 
         config_result, config_status = create_config_file(
-            domain, generate_nginx_config(domain, app_url)
+            domain, generate_nginx_config(domain, app_urls)
         )
         if config_status != 200:
             return config_result, config_status

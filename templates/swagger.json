@@ -19,7 +19,7 @@
   "paths": {
     "/deploy/nginx": {
       "post": {
-        "summary": "Deploy Nginx configuration for a single domain",
+        "summary": "Deploy Nginx configuration for a domain (supports round-robin upstream)",
         "parameters": [
           {
             "name": "body",
@@ -73,7 +73,19 @@
         "app_url": {
           "type": "string",
           "default": "http://localhost:3000",
-          "example": "http://localhost:3000"
+          "example": "http://localhost:3000",
+          "description": "Single backend URL (backward compatibility). Ignored when app_urls is provided."
+        },
+        "app_urls": {
+          "type": "array",
+          "description": "List backend servers for nginx upstream round-robin.",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "http://10.0.0.11:3000",
+            "10.0.0.12:3000"
+          ]
         },
         "ssl": {
           "type": "string",
@@ -96,6 +108,14 @@
         "ssl_enabled": {
           "type": "boolean",
           "example": true
+        },
+        "round_robin_enabled": {
+          "type": "boolean",
+          "example": true
+        },
+        "upstream_count": {
+          "type": "integer",
+          "example": 2
         }
       }
     },
