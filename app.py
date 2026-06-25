@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
 import os
 from flasgger import Flasgger
+from werkzeug.middleware.proxy_fix import ProxyFix
 from tools.config_generator_nginx import clear_all_pycache, deploy_single_domain
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 APP_PORT = os.getenv("PORT", "3000")
 SWAGGER_HOST = os.getenv("SWAGGER_HOST")
 
